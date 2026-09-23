@@ -14,15 +14,34 @@ const PORT = process.env.PORT || 5050;
 // this value back and forth, e.g.:
 // CLIENT_URL=http://localhost:5173,https://your-blog.vercel.app
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
-const allowedOrigins = CLIENT_URL.split(',').map((s) => s.trim());
+
+// Normalize: trim whitespace and strip trailing slashes so
+// "https://foo.vercel.app/" still matches "https://foo.vercel.app"
+const allowedOrigins = CLIENT_URL.split(',')
+  .map((s) => s.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+const allowAll = allowedOrigins.includes('*');
+
+if (allowAll) {
+  console.warn(
+    'WARNING: CLIENT_URL is set to "*" — allowing ALL origins. ' +
+    'This works but is insecure for production. Set CLIENT_URL to your real frontend URL(s) instead.'
+  );
+}
 
 app.use(
   cors({
     origin(origin, callback) {
       // Allow tools with no origin header (curl, Render health checks, etc.)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) return callback(null, true);
+
+      const normalizedOrigin = origin.replace(/\/$/, '');
+
+      if (allowAll || allowedOrigins.includes(normalizedOrigin)) {
         return callback(null, true);
       }
+
       console.warn(`Blocked CORS request from origin: ${origin}`);
       return callback(new Error('Not allowed by CORS'));
     },
@@ -45,7 +64,10 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
+  console.log(
+    allowAll
+      ? 'Allowed origins: * (all origins allowed)'
+      : `Allowed origins: ${allowedOrigins.join(', ')}`
+  );
   console.log('Data is stored locally in backend/db.json — no external database needed.');
 });
-
