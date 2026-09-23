@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: blog-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: CLIENT_URL
+        value: http://localhost:5173
+        # After deploying the frontend to Vercel, update this in the Render
+        # dashboard to include your real URL, comma-separated, e.g.:
+        # http://localhost:5173,https://your-blog.vercel.app
